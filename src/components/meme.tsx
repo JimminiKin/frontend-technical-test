@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Avatar,
   Box,
-  Collapse,
   Flex,
   Icon,
   LinkBox,
@@ -114,9 +113,9 @@ export const Meme: React.FC<MemeProps> = ({
           <Icon as={Chat} />
         </Flex>
       </LinkBox>
-      <Collapse in={isCommentsOpen} animateOpacity>
-        <MemeComments memeId={meme.id} />
-      </Collapse>
+      {isCommentsOpen && (
+          <MemeComments memeId={meme.id} />
+      )}
     </VStack>
   );
 }; 

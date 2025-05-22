@@ -1,10 +1,12 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Avatar,
   Box,
   Flex,
   Input,
   VStack,
+  Button,
+  Text,
 } from "@chakra-ui/react";
 import { getMemeComments, createMemeComment } from "../api";
 import { useAuthToken } from "../contexts/authentication";
@@ -22,28 +24,39 @@ export const MemeComments: React.FC<MemeCommentsProps> = ({
   const token = useAuthToken();
   const { currentUser } = useCurrentUser();
   const [commentContent, setCommentContent] = useState("");
+  const queryClient = useQueryClient();
 
-  const { data: comments, isLoading } = useQuery({
+  const {
+    data,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: ["meme-comments", memeId],
-    queryFn: async () => {
-      const comments = [];
-      const firstPage = await getMemeComments(token, memeId, 1);
-      comments.push(...firstPage.results);
-      const remainingCommentPages =
-        Math.ceil(firstPage.total / firstPage.pageSize) - 1;
-      for (let i = 0; i < remainingCommentPages; i++) {
-        const page = await getMemeComments(token, memeId, i + 2);
-        comments.push(...page.results);
-      }
-      return comments;
+    queryFn: async ({ pageParam = 1 }) => {
+      const response = await getMemeComments(token, memeId, pageParam);
+      return {
+        comments: response.results,
+        nextPage: pageParam + 1,
+        totalPages: Math.ceil(response.total / response.pageSize)
+      };
     },
+    getNextPageParam: (lastPage) =>
+      lastPage.nextPage <= lastPage.totalPages ? lastPage.nextPage : undefined,
+    initialPageParam: 1,
   });
 
   const { mutate: submitComment } = useMutation({
     mutationFn: async (content: string) => {
       await createMemeComment(token, memeId, content);
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["meme-comments", memeId] });
+    },
   });
+
+  const comments = data?.pages.flatMap(page => page.comments) ?? [];
 
   return (
     <>
@@ -77,14 +90,30 @@ export const MemeComments: React.FC<MemeCommentsProps> = ({
       <VStack align="stretch" spacing={4}>
         {isLoading ? (
           <Box p={2}>Loading comments...</Box>
+        ) : comments.length > 0 ? (
+          <>
+            {comments.map((comment) => (
+              <MemeComment
+                key={comment.id}
+                memeId={memeId}
+                comment={comment}
+              />
+            ))}
+            {hasNextPage && (
+              <Button
+                onClick={() => fetchNextPage()}
+                isLoading={isFetchingNextPage}
+                variant="ghost"
+                size="sm"
+                width="full"
+                color="gray.500"
+              >
+                Load more comments
+              </Button>
+            )}
+          </>
         ) : (
-          comments?.map((comment) => (
-            <MemeComment
-              key={comment.id}
-              memeId={memeId}
-              comment={comment}
-            />
-          ))
+          <Text color="gray.500" p={2}>No comments yet. Be the first to comment!</Text>
         )}
       </VStack>
     </>
