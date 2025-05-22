@@ -1,38 +1,54 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { VStack, StackDivider } from "@chakra-ui/react";
+import { VStack, StackDivider, Button, Text, Flex, Spinner } from "@chakra-ui/react";
 import { getMemes } from "../../api";
 import { useAuthToken } from "../../contexts/authentication";
 import { Loader } from "../../components/loader";
 import { Meme } from "../../components/meme";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useInView } from "react-intersection-observer";
 
 export const MemeFeedPage: React.FC = () => {
   const token = useAuthToken();
-  const { isLoading, data: memes } = useQuery({
+  const { ref, inView } = useInView();
+
+  const {
+    data,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: ["memes"],
-    queryFn: async () => {
-      const memes = [];
-      const firstPage = await getMemes(token, 1);
-      memes.push(...firstPage.results);
-      const remainingPages =
-        Math.ceil(firstPage.total / firstPage.pageSize) - 1;
-      for (let i = 0; i < remainingPages; i++) {
-        const page = await getMemes(token, i + 2);
-        memes.push(...page.results);
-      }
-      return memes.map(meme => ({
-        ...meme,
-        commentsCount: Number(meme.commentsCount)
-      }));
+    queryFn: async ({ pageParam = 1 }) => {
+      const response = await getMemes(token, pageParam);
+      return {
+        memes: response.results.map(meme => ({
+          ...meme,
+          commentsCount: Number(meme.commentsCount)
+        })),
+        nextPage: pageParam + 1,
+        totalPages: Math.ceil(response.total / response.pageSize)
+      };
     },
+    getNextPageParam: (lastPage) => 
+      lastPage.nextPage <= lastPage.totalPages ? lastPage.nextPage : undefined,
+    initialPageParam: 1,
   });
 
   const [openedCommentSection, setOpenedCommentSection] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
   if (isLoading) {
     return <Loader data-testid="meme-feed-loader" />;
   }
+
+  const memes = data?.pages.flatMap(page => page.memes) ?? [];
 
   return (
     <VStack
@@ -43,8 +59,9 @@ export const MemeFeedPage: React.FC = () => {
       margin="0 auto"
       divider={<StackDivider border="gray.200" />}
       overflowY="auto"
+      spacing={4}
     >
-      {memes?.map((meme) => (
+      {memes.map((meme) => (
         <Meme
           key={meme.id}
           meme={meme}
@@ -56,6 +73,21 @@ export const MemeFeedPage: React.FC = () => {
           }
         />
       ))}
+      
+      <Flex 
+        ref={ref}
+        justify="center"
+        py={4}
+        width="full"
+      >
+        {isFetchingNextPage ? (
+          <Spinner size="sm" color="gray.500" />
+        ) : hasNextPage ? (
+          <Text color="gray.500">Loading more memes...</Text>
+        ) : (
+          <Text color="gray.500">No more memes to load</Text>
+        )}
+      </Flex>
     </VStack>
   );
 };
