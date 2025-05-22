@@ -1,14 +1,15 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { VStack, StackDivider, Button, Text, Flex, Spinner } from "@chakra-ui/react";
+import { VStack, StackDivider, Button, Text, Flex, Spinner, Alert, AlertIcon } from "@chakra-ui/react";
 import { getMemes } from "../../api";
 import { useAuthToken } from "../../contexts/authentication";
 import { Loader } from "../../components/loader";
 import { Meme } from "../../components/meme";
 import { useState, useEffect } from "react";
 import { useInView } from "react-intersection-observer";
+import { ErrorBoundary } from "../../components/error-boundary";
 
-export const MemeFeedPage: React.FC = () => {
+const MemeFeed: React.FC = () => {
   const token = useAuthToken();
   const { ref, inView } = useInView();
 
@@ -18,6 +19,7 @@ export const MemeFeedPage: React.FC = () => {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
+    error,
   } = useInfiniteQuery({
     queryKey: ["memes"],
     queryFn: async ({ pageParam = 1 }) => {
@@ -48,7 +50,20 @@ export const MemeFeedPage: React.FC = () => {
     return <Loader data-testid="meme-feed-loader" />;
   }
 
+  if (error) {
+    throw error;
+  }
+
   const memes = data?.pages.flatMap(page => page.memes) ?? [];
+
+  if (memes.length === 0) {
+    return (
+      <Alert status="info" borderRadius="md">
+        <AlertIcon />
+        No memes found. Check back later!
+      </Alert>
+    );
+  }
 
   return (
     <VStack
@@ -89,6 +104,14 @@ export const MemeFeedPage: React.FC = () => {
         )}
       </Flex>
     </VStack>
+  );
+};
+
+export const MemeFeedPage: React.FC = () => {
+  return (
+    <ErrorBoundary>
+      <MemeFeed />
+    </ErrorBoundary>
   );
 };
 

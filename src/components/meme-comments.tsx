@@ -7,18 +7,21 @@ import {
   VStack,
   Button,
   Text,
+  Alert,
+  AlertIcon,
 } from "@chakra-ui/react";
 import { getMemeComments, createMemeComment } from "../api";
 import { useAuthToken } from "../contexts/authentication";
 import { MemeComment } from "./meme-comment";
 import { useState } from "react";
 import { useCurrentUser } from "../hooks/use-current-user";
+import { ErrorBoundary } from "./error-boundary";
 
 interface MemeCommentsProps {
   memeId: string;
 }
 
-export const MemeComments: React.FC<MemeCommentsProps> = ({
+const MemeCommentsContent: React.FC<MemeCommentsProps> = ({
   memeId,
 }) => {
   const token = useAuthToken();
@@ -32,6 +35,7 @@ export const MemeComments: React.FC<MemeCommentsProps> = ({
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
+    error,
   } = useInfiniteQuery({
     queryKey: ["meme-comments", memeId],
     queryFn: async ({ pageParam = 1 }) => {
@@ -47,7 +51,7 @@ export const MemeComments: React.FC<MemeCommentsProps> = ({
     initialPageParam: 1,
   });
 
-  const { mutate: submitComment } = useMutation({
+  const { mutate: submitComment, error: submitError } = useMutation({
     mutationFn: async (content: string) => {
       await createMemeComment(token, memeId, content);
     },
@@ -55,6 +59,10 @@ export const MemeComments: React.FC<MemeCommentsProps> = ({
       queryClient.invalidateQueries({ queryKey: ["meme-comments", memeId] });
     },
   });
+
+  if (error) {
+    throw error;
+  }
 
   const comments = data?.pages.flatMap(page => page.comments) ?? [];
 
@@ -70,21 +78,29 @@ export const MemeComments: React.FC<MemeCommentsProps> = ({
             }
           }}
         >
-          <Flex alignItems="center">
-            <Avatar
-              borderWidth="1px"
-              borderColor="gray.300"
-              name={currentUser?.username}
-              src={currentUser?.pictureUrl}
-              size="sm"
-              mr={2}
-            />
-            <Input
-              placeholder="Type your comment here..."
-              onChange={(event) => setCommentContent(event.target.value)}
-              value={commentContent}
-            />
-          </Flex>
+          <VStack spacing={2}>
+            <Flex alignItems="center" width="full">
+              <Avatar
+                borderWidth="1px"
+                borderColor="gray.300"
+                name={currentUser?.username}
+                src={currentUser?.pictureUrl}
+                size="sm"
+                mr={2}
+              />
+              <Input
+                placeholder="Type your comment here..."
+                onChange={(event) => setCommentContent(event.target.value)}
+                value={commentContent}
+              />
+            </Flex>
+            {submitError && (
+              <Alert status="error" size="sm">
+                <AlertIcon />
+                Failed to post comment. Please try again.
+              </Alert>
+            )}
+          </VStack>
         </form>
       </Box>
       <VStack align="stretch" spacing={4}>
@@ -117,5 +133,13 @@ export const MemeComments: React.FC<MemeCommentsProps> = ({
         )}
       </VStack>
     </>
+  );
+};
+
+export const MemeComments: React.FC<MemeCommentsProps> = (props) => {
+  return (
+    <ErrorBoundary>
+      <MemeCommentsContent {...props} />
+    </ErrorBoundary>
   );
 }; 
