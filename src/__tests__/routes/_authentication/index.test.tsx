@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, fireEvent, act } from "@testing-library/react";
 import { ChakraProvider } from "@chakra-ui/react";
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import { AuthenticationContext } from "../../../contexts/authentication";
@@ -64,6 +64,16 @@ describe("routes/_authentication/index", () => {
         // We check that the right number of comments is displayed
         expect(screen.getByTestId("meme-comments-count-dummy_meme_id_1")).toHaveTextContent('3 comments');
         
+      });
+
+      const expandComments = screen.getByTestId("meme-comments-section-dummy_meme_id_1");
+
+      act(() => {
+        // We click on the expand comments button
+        fireEvent.click(expandComments);
+      });
+
+      await waitFor(() => {
         // We check that the right comments with the right authors are displayed
         expect(screen.getByTestId("meme-comment-content-dummy_meme_id_1-dummy_comment_id_1")).toHaveTextContent('dummy comment 1');
         expect(screen.getByTestId("meme-comment-author-dummy_meme_id_1-dummy_comment_id_1")).toHaveTextContent('dummy_user_1');
