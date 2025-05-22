@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   Avatar,
@@ -10,23 +10,16 @@ import {
   LinkOverlay,
   StackDivider,
   Text,
-  Input,
   VStack,
 } from "@chakra-ui/react";
 import { CaretDown, CaretUp, Chat } from "@phosphor-icons/react";
 import { format } from "timeago.js";
-import {
-  createMemeComment,
-  getMemeComments,
-  getMemes,
-  getUserById,
-} from "../../api";
+import { getMemes, getUserById } from "../../api";
 import { useAuthToken } from "../../contexts/authentication";
 import { Loader } from "../../components/loader";
 import { MemePicture } from "../../components/meme-picture";
-import { MemeComment } from "../../components/meme-comment";
+import { MemeComments } from "../../components/meme-comments";
 import { useState } from "react";
-import { jwtDecode } from "jwt-decode";
 
 export const MemeFeedPage: React.FC = () => {
   const token = useAuthToken();
@@ -42,43 +35,19 @@ export const MemeFeedPage: React.FC = () => {
         const page = await getMemes(token, i + 2);
         memes.push(...page.results);
       }
-      const memesWithAuthorAndComments = [];
+      const memesWithAuthor = [];
       for (let meme of memes) {
         const author = await getUserById(token, meme.authorId);
-        const comments = [];
-        const firstPage = await getMemeComments(token, meme.id, 1);
-        comments.push(...firstPage.results);
-        const remainingCommentPages =
-          Math.ceil(firstPage.total / firstPage.pageSize) - 1;
-        for (let i = 0; i < remainingCommentPages; i++) {
-          const page = await getMemeComments(token, meme.id, i + 2);
-          comments.push(...page.results);
-        }
-        memesWithAuthorAndComments.push({
+        memesWithAuthor.push({
           ...meme,
           author,
-          comments,
         });
       }
-      return memesWithAuthorAndComments;
-    },
-  });
-
-  const { data: user } = useQuery({
-    queryKey: ["user"],
-    queryFn: async () => {
-      return await getUserById(token, jwtDecode<{ id: string }>(token).id);
+      return memesWithAuthor;
     },
   });
 
   const [openedCommentSection, setOpenedCommentSection] = useState<string | null>(null);
-  const [commentContent, setCommentContent] = useState<{ [key: string]: string }>({});
-
-  const { mutate } = useMutation({
-    mutationFn: async (data: { memeId: string; content: string }) => {
-      await createMemeComment(token, data.memeId, data.content);
-    },
-  });
 
   if (isLoading) {
     return <Loader data-testid="meme-feed-loader" />;
@@ -152,49 +121,9 @@ export const MemeFeedPage: React.FC = () => {
                 </Flex>
               </LinkBox>
               <Collapse in={openedCommentSection === meme.id} animateOpacity>
-                <Box mb={6}>
-                  <form
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      if (commentContent[meme.id]) {
-                        mutate({
-                          memeId: meme.id,
-                          content: commentContent[meme.id],
-                        });
-                      }
-                    }}
-                  >
-                    <Flex alignItems="center">
-                      <Avatar
-                        borderWidth="1px"
-                        borderColor="gray.300"
-                        name={user?.username}
-                        src={user?.pictureUrl}
-                        size="sm"
-                        mr={2}
-                      />
-                      <Input
-                        placeholder="Type your comment here..."
-                        onChange={(event) => {
-                          setCommentContent({
-                            ...commentContent,
-                            [meme.id]: event.target.value,
-                          });
-                        }}
-                        value={commentContent[meme.id]}
-                      />
-                    </Flex>
-                  </form>
-                </Box>
-                <VStack align="stretch" spacing={4}>
-                  {meme.comments.map((comment) => (
-                    <MemeComment
-                      key={comment.id}
-                      memeId={meme.id}
-                      comment={comment}
-                    />
-                  ))}
-                </VStack>
+                <MemeComments
+                  memeId={meme.id}
+                />
               </Collapse>
             </VStack>
           );
