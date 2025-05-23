@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { afterEach } from 'vitest';
+import { afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import { setupServer } from 'msw/node';
 import { handlers } from './mocks/handlers';
@@ -13,3 +13,7 @@ afterEach(() => {
   cleanup();
 });
 afterAll(() => server.close());
+
+
+// Mock scrollTo
+window.scrollTo = vi.fn();

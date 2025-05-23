@@ -85,5 +85,38 @@ describe("routes/_authentication/index", () => {
         expect(screen.getByTestId("meme-comment-author-dummy_meme_id_1-dummy_comment_id_3")).toHaveTextContent('dummy_user_3');
       });
     });
+
+    it("should display the new comment when submitted", async () => {
+      renderMemeFeedPage();
+
+      const expandComments = await screen.findByTestId("meme-comments-section-dummy_meme_id_1");
+      
+      act(() => {
+        // We click on the expand comments button
+        fireEvent.click(expandComments);
+      });
+
+      // We check that the comment input is displayed
+      const commentInput = screen.getByPlaceholderText("Type your comment here...");
+
+      act(() => {
+        // We click on the expand comments button
+        fireEvent.change(commentInput, { target: { value: "dummy new comment" } });
+      });
+
+      expect(commentInput).toHaveValue("dummy new comment");
+
+      
+      act(() => {
+        const form = commentInput.closest("form");
+        expect(form).toBeInTheDocument();
+        fireEvent.submit(form as HTMLFormElement);
+      });
+
+      await waitFor(() => {        
+        expect(screen.getByTestId("meme-comment-content-dummy_meme_id_1-dummy_comment_id_4")).toHaveTextContent('dummy new comment');
+        expect(screen.getByTestId("meme-comment-author-dummy_meme_id_1-dummy_comment_id_4")).toHaveTextContent('dummy_user_1');
+      }); 
+    });
   });
 });

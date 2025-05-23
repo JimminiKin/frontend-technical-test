@@ -109,4 +109,28 @@ export const handlers = [
       });
     },
   ),
+  http.post<{ id: string }, { content: string }>(
+    "https://fetestapi.int.mozzaik365.net/api/memes/:id/comments",
+    async ({ params, request }) => {
+
+      const data = await request.json();
+
+      comments.push({
+        id: `dummy_comment_id_${comments.length + 1}`,
+        memeId: params.id,
+        authorId: "dummy_user_id_1",
+        content: data.content,
+        createdAt: "2021-09-01T12:00:00Z",
+      });
+       
+      const memeComments = comments.filter(
+        (comment) => comment.memeId === params.id,
+      );
+      return HttpResponse.json({
+        total: memeComments.length,
+        pageSize: memeComments.length,
+        results: memeComments,
+      });
+    },
+  ),
 ];
