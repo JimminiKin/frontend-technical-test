@@ -60,6 +60,14 @@ function MemeCreate() {
     setTexts(texts.map((text, i) => i === index ? { ...text, content } : text));
   };
 
+  const handleCaptionDragEnd = (index: number, x: number, y: number) => {
+    setTexts(texts.map((text, i) => 
+      i === index 
+        ? { ...text, x, y }
+        : text
+    ));
+  };
+
   const memePicture = useMemo(() => {
     if (!picture) {
       return undefined;
@@ -68,12 +76,13 @@ function MemeCreate() {
     return {
       pictureUrl: picture.url,
       texts,
+      onDragEnd: handleCaptionDragEnd,
+      isEditable: true,
     };
   }, [picture, texts]);
 
   const { mutate: submitMeme, isPending } = useMutation({
     mutationFn: async () => {
-      console.log("submitMeme", token, description, picture?.file, texts);
       if (!picture) {
         throw new Error("Picture is required");
       }
@@ -120,7 +129,7 @@ function MemeCreate() {
         <Box p={4} flexGrow={1} height={0} overflowY="auto">
           <VStack>
             {texts.map((text, index) => (
-              <Flex width="full">
+              <Flex width="full" key={index}>
                 <Input key={index} value={text.content} mr={1} onChange={(e) => handleCaptionChange(index, e.target.value)} />
                 <IconButton
                   onClick={() => handleDeleteCaptionButtonClick(index)}
