@@ -39,6 +39,7 @@ describe("routes/_authentication/create", () => {
       const mockFile = new File([''], 'test.png', { type: 'image/png' });
       const fileInput = screen.getByLabelText(/upload image/i);
       const descriptionInput = screen.getByLabelText(/Description/i);
+      const newCaptionButton = screen.getByLabelText(/Add Caption/i);
       const submitButton = screen.getByLabelText(/Submit/i );
 
       expect(navigateMock).toHaveBeenCalledWith(expect.objectContaining({toLocation: expect.objectContaining({href: '/create'})}))
@@ -48,6 +49,15 @@ describe("routes/_authentication/create", () => {
       await act(async () => {
         fireEvent.change(fileInput, { target: { files: [mockFile] } });
         fireEvent.change(descriptionInput, { target: { value: 'Test Meme' } });
+      });
+      await act(async () => {
+        fireEvent.click(newCaptionButton);
+      });
+      
+      const newCaptionInput = screen.getByLabelText(/Caption 1/i);
+
+      await act(async () => {
+        fireEvent.change(newCaptionInput, { target: { value: 'Test Caption' } });
       });
       await act(async () => {
         fireEvent.click(submitButton);

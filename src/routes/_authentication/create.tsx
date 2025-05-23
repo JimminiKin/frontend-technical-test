@@ -130,7 +130,7 @@ function MemeCreate() {
           <VStack>
             {texts.map((text, index) => (
               <Flex width="full" key={index}>
-                <Input key={index} value={text.content} mr={1} onChange={(e) => handleCaptionChange(index, e.target.value)} />
+                <Input key={index} value={text.content} mr={1} onChange={(e) => handleCaptionChange(index, e.target.value)} aria-label={`Caption ${index + 1}`} />
                 <IconButton
                   onClick={() => handleDeleteCaptionButtonClick(index)}
                   aria-label="Delete caption"
