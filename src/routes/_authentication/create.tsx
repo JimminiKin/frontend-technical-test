@@ -168,7 +168,7 @@ function MemeCreate() {
             size="sm"
             width="full"
             color="white"
-            isDisabled={memePicture === undefined}
+            isDisabled={memePicture === undefined || description.length === 0 || texts.length === 0}
             isLoading={isPending}
             onClick={() => submitMeme()}
             aria-label="Submit"
