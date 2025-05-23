@@ -15,19 +15,24 @@ import { MemeEditor } from "../../components/meme-editor";
 import { useMemo, useState } from "react";
 import { MemePictureProps } from "../../components/meme-picture";
 import { Plus, Trash } from "@phosphor-icons/react";
+import { ErrorBoundary } from "../../components/error-boundary";
+import { useMutation } from "@tanstack/react-query";
+import { createMeme } from "../../api";
+import { useAuthToken } from "../../contexts/authentication";
+import { useNavigate } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/_authentication/create")({
-  component: CreateMemePage,
-});
 
 type Picture = {
   url: string;
   file: File;
 };
 
-function CreateMemePage() {
+function MemeCreate() {
+  const token = useAuthToken();
+  const navigate = useNavigate();
   const [picture, setPicture] = useState<Picture | null>(null);
   const [texts, setTexts] = useState<MemePictureProps["texts"]>([]);
+  const [description, setDescription] = useState("");
 
   const handleDrop = (file: File) => {
     setPicture({
@@ -51,6 +56,10 @@ function CreateMemePage() {
     setTexts(texts.filter((_, i) => i !== index));
   };
 
+  const handleCaptionChange = (index: number, content: string ) => {
+    setTexts(texts.map((text, i) => i === index ? { ...text, content } : text));
+  };
+
   const memePicture = useMemo(() => {
     if (!picture) {
       return undefined;
@@ -61,6 +70,19 @@ function CreateMemePage() {
       texts,
     };
   }, [picture, texts]);
+
+  const { mutate: submitMeme, isPending } = useMutation({
+    mutationFn: async () => {
+      console.log("submitMeme", token, description, picture?.file, texts);
+      if (!picture) {
+        throw new Error("Picture is required");
+      }
+      return createMeme(token, description, picture.file, texts);
+    },
+    onSuccess: () => {
+      navigate({ to: "/" });
+    }
+  });
 
   return (
     <Flex width="full" height="full">
@@ -76,7 +98,12 @@ function CreateMemePage() {
             <Heading as="h2" size="md" mb={2}>
               Describe your meme
             </Heading>
-            <Textarea placeholder="Type your description here..." />
+            <Textarea 
+              placeholder="Type your description here..." 
+              aria-label="Description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
           </Box>
         </VStack>
       </Box>
@@ -94,7 +121,7 @@ function CreateMemePage() {
           <VStack>
             {texts.map((text, index) => (
               <Flex width="full">
-                <Input key={index} value={text.content} mr={1} />
+                <Input key={index} value={text.content} mr={1} onChange={(e) => handleCaptionChange(index, e.target.value)} />
                 <IconButton
                   onClick={() => handleDeleteCaptionButtonClick(index)}
                   aria-label="Delete caption"
@@ -105,6 +132,7 @@ function CreateMemePage() {
             <Button
               colorScheme="cyan"
               leftIcon={<Icon as={Plus} />}
+              aria-label="Add caption"
               variant="ghost"
               size="sm"
               width="full"
@@ -132,6 +160,9 @@ function CreateMemePage() {
             width="full"
             color="white"
             isDisabled={memePicture === undefined}
+            isLoading={isPending}
+            onClick={() => submitMeme()}
+            aria-label="Submit"
           >
             Submit
           </Button>
@@ -140,3 +171,16 @@ function CreateMemePage() {
     </Flex>
   );
 }
+
+export const MemeCreatePage: React.FC = () => {
+  return (
+    <ErrorBoundary>
+      <MemeCreate />
+    </ErrorBoundary>
+  );
+};
+
+
+export const Route = createFileRoute("/_authentication/create")({
+  component: MemeCreatePage,
+});

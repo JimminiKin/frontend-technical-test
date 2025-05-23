@@ -66,7 +66,7 @@ export const MemeEditor: React.FC<MemeEditorProps> = ({
       onDrop(files[0]);
     },
     noClick: memePicture !== undefined,
-    accept: { "image/png": [".png"], "image/jpg": [".jpg"] },
+    accept: { "image/png": [".png"], "image/jpg": [".jpg"], "image/jpeg": [".jpeg"] },
   });
 
   return (
@@ -80,7 +80,7 @@ export const MemeEditor: React.FC<MemeEditorProps> = ({
         borderRadius={9}
         px={1}
       >
-        <input {...getInputProps()} />
+        <input {...getInputProps()} aria-label="Upload image" />
         {memePicture ? renderMemePicture(memePicture, open) : renderNoPicture()}
       </Box>
     </AspectRatio>

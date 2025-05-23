@@ -17,3 +17,4 @@ afterAll(() => server.close());
 
 // Mock scrollTo
 window.scrollTo = vi.fn();
+global.URL.createObjectURL = vi.fn();

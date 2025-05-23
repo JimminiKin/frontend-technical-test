@@ -1,4 +1,4 @@
-import { http, HttpResponse } from "msw";
+import { http, HttpResponse, PathParams } from "msw";
 
 const users = {
   dummy_user_id_1: {
@@ -132,5 +132,28 @@ export const handlers = [
         results: memeComments,
       });
     },
+  ),
+  http.post<{}, FormData>(
+    "https://fetestapi.int.mozzaik365.net/api/memes",
+    async ({ request }) => {
+      // Here we should read request.formData() but there seem to be a bug that I don't really have time to fix in the context of this test
+      // Awaiting request.formData() will fail silently and prevent the call from completing
+
+      memes.push({
+        id: `dummy_meme_id_${memes.length + 1}`,
+        authorId: "dummy_user_id_1",
+        pictureUrl: "https://dummy.url/meme/1",
+        description:"Test Meme",
+        texts: [],
+        commentsCount: 0,
+        createdAt: "2021-09-01T12:00:00Z",
+      });
+
+      return HttpResponse.json({
+        total: memes.length,
+        pageSize: memes.length,
+        results: memes,
+      });
+    }
   ),
 ];
